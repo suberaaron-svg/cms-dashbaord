@@ -100,3 +100,23 @@ result so every chart/table still receives data in the exact same shape — comp
 5. Platform filtering by single platform currently happens by slicing the "all platforms" mock
    result client-side. A real implementation should ideally request platform-scoped data directly
    from Metricool to avoid over-fetching.
+
+### Current status: live data wired, endpoints unverified
+
+`USE_MOCK_DATA` is now `false`. `adapter.ts`'s `fetchFromMetricool` calls the Next.js Route Handler
+at `src/app/api/analytics/route.ts`, which holds the Metricool credentials server-side and does the
+actual upstream fetch — the token never reaches the browser.
+
+- Connected platforms: Instagram, YouTube, TikTok, Facebook (LinkedIn intentionally excluded —
+  not connected in Metricool for this account). See `CONNECTED_PLATFORMS` in `route.ts`.
+- Required env vars (set locally in `.env.local`, which is gitignored — never commit these):
+  - `METRICOOL_API_TOKEN` — personal/account API token from Metricool settings
+  - `METRICOOL_USER_ID` — your Metricool user id
+  - `METRICOOL_BLOG_ID` — the brand/blog id within your Metricool account
+- **The endpoint paths in `route.ts` (`/v2/analytics/posts/{network}` and `/v2/analytics/posts`) are
+  best-effort guesses, not confirmed against Metricool's current API docs.** Verify them against
+  https://metricool.com/api with a real token and adjust `mapPlatformSummary`/`fetchTopPosts` to
+  match the actual response shape before trusting this in production.
+- `followerGrowth` and `engagementRate` time-series are currently stubbed as empty arrays — Metricool
+  exposes these via separate endpoints per network that haven't been wired up yet. The two charts
+  that depend on them will render empty until this is implemented.
