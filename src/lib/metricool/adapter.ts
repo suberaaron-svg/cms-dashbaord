@@ -35,7 +35,7 @@ const PLATFORMS: Platform[] = [
   "linkedin",
 ];
 
-const USE_MOCK_DATA = true;
+const USE_MOCK_DATA = false;
 
 // Seeded pseudo-random generator so mock data is stable across renders/SSR.
 function seededRandom(seed: number) {
@@ -213,12 +213,20 @@ function getMockAnalyticsData(range: DateRange): AnalyticsData {
   };
 }
 
-// Placeholder for the real Metricool integration.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+// Calls the server-side route handler (`src/app/api/analytics/route.ts`),
+// which holds the Metricool token and does the actual upstream fetch.
 async function fetchFromMetricool(range: DateRange): Promise<AnalyticsData> {
-  throw new Error(
-    "Metricool API integration not implemented yet. Set USE_MOCK_DATA = false and implement this function using METRICOOL_API_TOKEN."
-  );
+  const from = format(range.from, "yyyy-MM-dd");
+  const to = format(range.to, "yyyy-MM-dd");
+
+  const res = await fetch(`/api/analytics?from=${from}&to=${to}`);
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error ?? `Analytics request failed (${res.status})`);
+  }
+
+  return res.json();
 }
 
 export async function getAnalyticsData(
